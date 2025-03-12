@@ -19,6 +19,9 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       - name: Run ktlint
         run: ./gradlew ktlintCheck
 
@@ -33,6 +36,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
       - name: Run stub unit tests
         run: echo "Unit tests mock"
