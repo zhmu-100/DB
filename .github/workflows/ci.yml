@@ -2,43 +2,34 @@ name: CI
 
 on:
   push:
-    branches: ["*"]
+    branches: [ '**' ]
   pull_request:
-    branches: [main, dev]
+    branches: [ 'main', 'dev' ]
 
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '17'
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
 
-      - name: Run ktlint
+      - name: Run ktlint (lint check)
         run: ./gradlew ktlintCheck
 
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'temurin'
-          java-version: '11'
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Run stub unit tests
+      - name: Run tests mock
         run: echo "Unit tests mock"
