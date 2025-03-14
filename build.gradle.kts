@@ -1,9 +1,11 @@
+
 plugins {
     kotlin("jvm") version "1.8.0"
     kotlin("plugin.serialization") version "1.8.10"
     id("io.ktor.plugin") version "2.2.4"
     application
     id("com.ncorti.ktfmt.gradle") version "0.11.0"
+    jacoco
 }
 
 group = "com.db.orm"
@@ -32,6 +34,33 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+configure<JacocoPluginExtension> {
+    toolVersion = "0.8.8"
+}
+
+tasks.named<JacocoReport>("jacocoTestReport") {
+    reports {
+        html.required.set(true)
+        xml.required.set(false)
+        csv.required.set(false)
+    }
+}
+
+tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.80.toBigDecimal()
+                counter = "LINE"
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.named("jacocoTestCoverageVerification"))
 }
 
 application {
