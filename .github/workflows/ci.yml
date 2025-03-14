@@ -35,5 +35,11 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
-      - name: Run tests mock
-        run: echo "Running tests mock"
+      - name: Run unit tests and generate jacoco report
+        run: ./gradlew clean test jacocoTestReport
+
+      - name: Upload jacoco HTML report
+        uses: actions/upload-artifact@v3
+        with:
+          name: jacoco-report
+          path: build/reports/jacoco/test/html
