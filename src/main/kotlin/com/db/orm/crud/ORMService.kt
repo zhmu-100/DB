@@ -3,16 +3,9 @@ package com.db.orm.crud
 import com.db.orm.query.SQLActivity
 import com.db.orm.query.SQLExecutor
 
-class ORMService(private val executor: SQLExecutor = SQLActivity()) {
+class ORMService(private val executor: SQLExecutor = SQLActivity()) : IORMService {
 
-  /**
-   * Создание новой записи в таблице.
-   *
-   * @param table Имя таблицы.
-   * @param data Словарь, где ключ — имя колонки, значение — значение для вставки.
-   * @return true, если вставка прошла успешно (затронута хотя бы одна строка), иначе false.
-   */
-  fun create(table: String, data: Map<String, String>): Boolean {
+  override fun create(table: String, data: Map<String, String>): Boolean {
     val columns = data.keys.joinToString(", ")
     val placeholders = data.keys.joinToString(", ") { "?" }
     val values = data.values.toList()
@@ -26,14 +19,7 @@ class ORMService(private val executor: SQLExecutor = SQLActivity()) {
     }
   }
 
-  /**
-   * Чтение данных.
-   *
-   * @param query SQL запрос для выборки данных.
-   * @param params Список параметров для параметризованного запроса.
-   * @return Список строк, где каждая строка представлена в виде Map<ИмяКолонки, Значение>.
-   */
-  fun read(query: String, params: List<String> = emptyList()): List<Map<String, Any>> {
+  override fun read(query: String, params: List<String>): List<Map<String, Any>> {
     return if (params.isEmpty()) {
       executor.executeQuery(query)
     } else {
@@ -41,16 +27,7 @@ class ORMService(private val executor: SQLExecutor = SQLActivity()) {
     }
   }
 
-  /**
-   * Обновление записей в таблице.
-   *
-   * @param table Имя таблицы.
-   * @param data Словарь новых значений для колонок.
-   * @param condition Условие обновления (например, "id = ?").
-   * @param conditionParams Список значений для параметров условия.
-   * @return true, если обновление затронуло хотя бы одну строку, иначе false.
-   */
-  fun update(
+  override fun update(
       table: String,
       data: Map<String, String>,
       condition: String,
@@ -68,15 +45,7 @@ class ORMService(private val executor: SQLExecutor = SQLActivity()) {
     }
   }
 
-  /**
-   * Удаление записей из таблицы.
-   *
-   * @param table Имя таблицы.
-   * @param condition Условие удаления (например, "id = ?").
-   * @param conditionParams Список значений для параметров условия.
-   * @return true, если удаление затронуло хотя бы одну строку, иначе false.
-   */
-  fun delete(table: String, condition: String, conditionParams: List<String>): Boolean {
+  override fun delete(table: String, condition: String, conditionParams: List<String>): Boolean {
     val query = "DELETE FROM $table WHERE $condition;"
     return try {
       val affectedRows = executor.executeParameterizedUpdate(query, conditionParams)
