@@ -1,81 +1,109 @@
 package com.db.orm.query
 
+import com.db.orm.connection.DatabaseConnection
+import io.mockk.*
+import java.sql.Connection
+import java.sql.PreparedStatement
+import java.sql.ResultSet
+import java.sql.ResultSetMetaData
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class SQLActivityTest {
 
-  private val executor: SQLExecutor = SQLActivity()
-
-  @BeforeEach
-  fun setup() {
-    val createTableQuery =
-        """
-            CREATE TABLE IF NOT EXISTS test_table (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100),
-                email VARCHAR(100)
-            );
-        """
-            .trimIndent()
-    executor.executeParameterizedUpdate(createTableQuery, emptyList())
-  }
-
   @AfterEach
   fun tearDown() {
-    val dropTableQuery = "DROP TABLE IF EXISTS test_table;"
-    executor.executeParameterizedUpdate(dropTableQuery, emptyList())
+    unmockkAll()
   }
 
   @Test
-  fun testExecuteQuery() {
-    val insertQuery = "INSERT INTO test_table (name, email) VALUES (?, ?);"
-    val affectedRows =
-        executor.executeParameterizedUpdate(insertQuery, listOf("Alice", "alice@example.com"))
-    assertTrue(affectedRows > 0, "Expected at least one affected row on insert")
+  fun `test executeQuery returns correct result`() {
+    val mockConnection = mockk<Connection>(relaxed = true)
+    val mockStatement = mockk<java.sql.Statement>(relaxed = true)
+    val mockResultSet = mockk<ResultSet>(relaxed = true)
+    val mockMetaData = mockk<ResultSetMetaData>(relaxed = true)
 
-    val selectQuery = "SELECT * FROM test_table;"
-    val results = executor.executeQuery(selectQuery)
-    assertTrue(results.isNotEmpty(), "Expected non-empty result set")
-    val row = results.first()
-    assertEquals("Alice", row["name"]?.toString(), "Name should be 'Alice'")
-    assertEquals(
-        "alice@example.com", row["email"]?.toString(), "Email should be 'alice@example.com'")
+    mockkObject(DatabaseConnection)
+    every { DatabaseConnection.getConnection() } returns mockConnection
+
+    every { mockConnection.createStatement() } returns mockStatement
+    every { mockStatement.executeQuery(any()) } returns mockResultSet
+
+    every { mockResultSet.metaData } returns mockMetaData
+    every { mockMetaData.columnCount } returns 2
+    every { mockMetaData.getColumnName(1) } returns "name"
+    every { mockMetaData.getColumnName(2) } returns "email"
+
+    every { mockResultSet.next() } returnsMany listOf(true, false)
+    every { mockResultSet.getObject(1) } returns "Alice"
+    every { mockResultSet.getObject(2) } returns "alice@example.com"
+
+    val executor = SQLActivity()
+
+    val result = executor.executeQuery("SELECT * FROM test_table")
+
+    assertEquals(1, result.size)
+    val row = result[0]
+    assertEquals("Alice", row["name"])
+    assertEquals("alice@example.com", row["email"])
   }
 
   @Test
-  fun testExecuteParameterizedQuery() {
-    executor.executeParameterizedUpdate(
-        "INSERT INTO test_table (name, email) VALUES (?, ?);", listOf("Bob", "bob@example.com"))
-    executor.executeParameterizedUpdate(
-        "INSERT INTO test_table (name, email) VALUES (?, ?);",
-        listOf("Charlie", "charlie@example.com"))
+  fun `test executeParameterizedQuery returns correct result`() {
+    val mockConnection = mockk<Connection>(relaxed = true)
+    val mockPreparedStatement = mockk<PreparedStatement>(relaxed = true)
+    val mockResultSet = mockk<ResultSet>(relaxed = true)
+    val mockMetaData = mockk<ResultSetMetaData>(relaxed = true)
 
-    val query = "SELECT * FROM test_table WHERE name = ?;"
-    val results = executor.executeParameterizedQuery(query, listOf("Bob"))
-    assertEquals(1, results.size, "Expected exactly one record for Bob")
-    val row = results[0]
-    assertEquals("Bob", row["name"]?.toString(), "Name should be 'Bob'")
-    assertEquals("bob@example.com", row["email"]?.toString(), "Email should be 'bob@example.com'")
+    mockkObject(DatabaseConnection)
+    every { DatabaseConnection.getConnection() } returns mockConnection
+
+    every { mockConnection.prepareStatement(any()) } returns mockPreparedStatement
+    every { mockPreparedStatement.executeQuery() } returns mockResultSet
+
+    every { mockResultSet.metaData } returns mockMetaData
+    every { mockMetaData.columnCount } returns 2
+    every { mockMetaData.getColumnName(1) } returns "name"
+    every { mockMetaData.getColumnName(2) } returns "email"
+
+    every { mockResultSet.next() } returnsMany listOf(true, false)
+    every { mockResultSet.getObject(1) } returns "Bob"
+    every { mockResultSet.getObject(2) } returns "bob@example.com"
+
+    val executor = SQLActivity()
+
+    val result =
+        executor.executeParameterizedQuery("SELECT * FROM test_table WHERE name = ?", listOf("Bob"))
+
+    assertEquals(1, result.size)
+    val row = result[0]
+    assertEquals("Bob", row["name"])
+    assertEquals("bob@example.com", row["email"])
+
+    verify { mockPreparedStatement.setObject(1, "Bob") }
   }
 
   @Test
-  fun testExecuteParameterizedUpdate() {
-    executor.executeParameterizedUpdate(
-        "INSERT INTO test_table (name, email) VALUES (?, ?);", listOf("Dave", "dave@example.com"))
-    val updateQuery = "UPDATE test_table SET email = ? WHERE name = ?;"
-    val affectedRows =
-        executor.executeParameterizedUpdate(updateQuery, listOf("dave.new@example.com", "Dave"))
-    assertTrue(affectedRows > 0, "Expected at least one affected row on update")
+  fun `test executeParameterizedUpdate returns update count`() {
+    val mockConnection = mockk<Connection>(relaxed = true)
+    val mockPreparedStatement = mockk<PreparedStatement>(relaxed = true)
 
-    val selectQuery = "SELECT email FROM test_table WHERE name = ?;"
-    val results = executor.executeParameterizedQuery(selectQuery, listOf("Dave"))
-    assertEquals(1, results.size, "Expected exactly one record for Dave")
-    assertEquals(
-        "dave.new@example.com",
-        results[0]["email"]?.toString(),
-        "Email should be updated to 'dave.new@example.com'")
+    mockkObject(DatabaseConnection)
+    every { DatabaseConnection.getConnection() } returns mockConnection
+
+    every { mockConnection.prepareStatement(any()) } returns mockPreparedStatement
+    every { mockPreparedStatement.executeUpdate() } returns 1
+
+    val executor = SQLActivity()
+
+    val updateCount =
+        executor.executeParameterizedUpdate(
+            "UPDATE test_table SET name = ? WHERE email = ?",
+            listOf("Charlie", "charlie@example.com"))
+
+    assertEquals(1, updateCount)
+    verify { mockPreparedStatement.setObject(1, "Charlie") }
+    verify { mockPreparedStatement.setObject(2, "charlie@example.com") }
   }
 }

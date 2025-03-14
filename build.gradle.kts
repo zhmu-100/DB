@@ -29,6 +29,7 @@ dependencies {
 
   testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
   testImplementation("io.ktor:ktor-server-tests-jvm:2.2.4")
+  testImplementation("io.mockk:mockk:1.13.5")
 }
 
 tasks.test { useJUnitPlatform() }
