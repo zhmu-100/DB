@@ -14,7 +14,7 @@ object EnvLoader {
                 if (trimmedLine.isEmpty() || trimmedLine.startsWith("#")) return@forEachLine
 
                 val parts = trimmedLine.split("=")
-                if (parts.size >= 2){
+                if (parts.size >= 2) {
                     val key = parts[0].trim()
                     val value = parts.subList(1, parts.size).joinToString("=").trim()
                     map[key] = value

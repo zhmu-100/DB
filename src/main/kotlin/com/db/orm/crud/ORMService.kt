@@ -1,7 +1,7 @@
 package com.db.orm.crud
 
-import com.db.orm.query.SQLExecutor
 import com.db.orm.query.SQLActivity
+import com.db.orm.query.SQLExecutor
 
 class ORMService(private val executor: SQLExecutor = SQLActivity()) {
 

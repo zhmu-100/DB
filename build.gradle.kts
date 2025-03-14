@@ -3,6 +3,7 @@ plugins {
     kotlin("plugin.serialization") version "1.8.10"
     id("io.ktor.plugin") version "2.2.4"
     application
+    id("org.jlleitschuh.gradle.ktlint") version "11.0.0"
 }
 
 group = "com.db.orm"
