@@ -13,6 +13,9 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 fun main() {
   embeddedServer(Netty, port = 8080) {
@@ -39,8 +42,21 @@ fun Application.apiModule(ormService: IORMService) {
     post("/read") {
       try {
         val request = call.receive<ReadRequest>()
-        val results = ormService.read(request.table, request.columns, request.filters)
-        call.respond(results)
+        val results: List<Map<String, Any?>> =
+            ormService.read(request.table, request.columns, request.filters)
+        val jsonResults =
+            results.map { row ->
+              JsonObject(
+                  row.mapValues { (_, value) ->
+                    when (value) {
+                      null -> JsonNull
+                      is Number -> JsonPrimitive(value)
+                      is Boolean -> JsonPrimitive(value)
+                      else -> JsonPrimitive(value.toString())
+                    }
+                  })
+            }
+        call.respond(jsonResults)
       } catch (e: Exception) {
         e.printStackTrace()
         call.respondText("Error: ${e.localizedMessage}")

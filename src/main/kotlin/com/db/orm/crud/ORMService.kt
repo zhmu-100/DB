@@ -23,7 +23,7 @@ class ORMService(private val executor: SQLExecutor = SQLActivity()) : IORMServic
       table: String,
       columns: List<String>,
       filters: Map<String, String>
-  ): List<Map<String, Any>> {
+  ): List<Map<String, Any?>> {
     val columnStr = if (columns.isEmpty()) "*" else columns.joinToString(", ")
     val queryBuilder = StringBuilder("SELECT $columnStr FROM $table")
     val params: MutableList<Any> = mutableListOf()

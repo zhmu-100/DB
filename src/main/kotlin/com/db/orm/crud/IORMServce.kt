@@ -7,7 +7,7 @@ interface IORMService {
       table: String,
       columns: List<String> = listOf("*"),
       filters: Map<String, String> = emptyMap()
-  ): List<Map<String, Any>>
+  ): List<Map<String, Any?>>
 
   fun update(
       table: String,
