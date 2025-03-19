@@ -60,12 +60,16 @@ Create report with:
   ```
 
 - **POST /read**  
-  Executes a raw SQL SELECT query.  
-  **Example JSON:**
+  Performs a parameterized SELECT query by providing the table name, a list of columns to select (default is all
+  columns), and optional filters. Example JSON:
+- **Example JSON:**
   ```json
   {
-    "query": "SELECT * FROM users;",
-    "params": []
+    "table": "users",
+    "columns": ["id", "name", "email"],
+    "filters": {
+      "name": "John Doe"
+    }
   }
   ```
 

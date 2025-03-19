@@ -23,10 +23,6 @@ fun main() {
       .start(wait = true)
 }
 
-/**
- * Функция для регистрации маршрутов. Принимает IORMService, что позволяет подставлять
- * dummy-реализацию при тестировании.
- */
 fun Application.apiModule(ormService: IORMService) {
   routing {
     post("/create") {
@@ -43,7 +39,7 @@ fun Application.apiModule(ormService: IORMService) {
     post("/read") {
       try {
         val request = call.receive<ReadRequest>()
-        val results = ormService.read(request.query, request.params)
+        val results = ormService.read(request.table, request.columns, request.filters)
         call.respond(results)
       } catch (e: Exception) {
         e.printStackTrace()
@@ -79,7 +75,12 @@ fun Application.apiModule(ormService: IORMService) {
 
 @Serializable data class CreateRequest(val table: String, val data: Map<String, String>)
 
-@Serializable data class ReadRequest(val query: String, val params: List<String> = emptyList())
+@Serializable
+data class ReadRequest(
+    val table: String,
+    val columns: List<String> = listOf("*"),
+    val filters: Map<String, String> = emptyMap()
+)
 
 @Serializable
 data class UpdateRequest(

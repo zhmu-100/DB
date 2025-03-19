@@ -19,11 +19,23 @@ class ORMService(private val executor: SQLExecutor = SQLActivity()) : IORMServic
     }
   }
 
-  override fun read(query: String, params: List<String>): List<Map<String, Any>> {
-    return if (params.isEmpty()) {
-      executor.executeQuery(query)
-    } else {
-      executor.executeParameterizedQuery(query, params)
+  override fun read(
+      table: String,
+      columns: List<String>,
+      filters: Map<String, String>
+  ): List<Map<String, Any>> {
+    val columnStr = if (columns.isEmpty()) "*" else columns.joinToString(", ")
+    val queryBuilder = StringBuilder("SELECT $columnStr FROM $table")
+    val params: MutableList<Any> = mutableListOf()
+    if (filters.isNotEmpty()) {
+      val conditions = filters.entries.joinToString(" AND ") { "${it.key} = ?" }
+      queryBuilder.append(" WHERE $conditions")
+      params.addAll(filters.values)
+    }
+    return try {
+      executor.executeParameterizedQuery(queryBuilder.toString(), params)
+    } catch (e: Exception) {
+      throw RuntimeException("Error reading data: ${e.message}", e)
     }
   }
 
