@@ -7,6 +7,14 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
+/**
+ * Менеджер пула соединений с бд.
+ *
+ * Реализует инициализацию пула, выдачу соединений через метод [getConnection], возвращение
+ * соединений в пул через [releaseConnection] и полное закрытие пула методом [close].
+ *
+ * Соединения оборачиваются в [PooledConnection] для возврата в пул при вызове метода [close].
+ */
 object DatabaseConnection {
   private const val INITIAL_POOL_SIZE = 10
   private const val MAX_POOL_SIZE = 20
@@ -21,6 +29,12 @@ object DatabaseConnection {
     }
   }
 
+  /**
+   * Создает новое соединение с базой данных, используя конфигурацию из [DatabaseConfig].
+   *
+   * @return Новое соединение [Connection].
+   * @throws RuntimeException если возникла ошибка подключения.
+   */
   private fun createNewConnection(): Connection {
     val config = DatabaseConfig.load()
     val url = "jdbc:postgresql://${config.host}:${config.port}/${config.database}"
@@ -31,6 +45,13 @@ object DatabaseConnection {
     }
   }
 
+  /**
+   * Возвращает соединение из пула. Если пул пуст, пытается создать новое соединение, если общее
+   * количество соединений меньше [MAX_POOL_SIZE]. В противном случае ожидает до 30 секунд.
+   *
+   * @return Соединение, обернутое в [PooledConnection].
+   * @throws RuntimeException если время ожидания превышено.
+   */
   fun getConnection(): Connection {
     val conn =
         connectionPool.poll()
@@ -46,10 +67,16 @@ object DatabaseConnection {
     return PooledConnection(conn)
   }
 
+  /**
+   * Возвращает соединение в пул.
+   *
+   * @param connection Соединение, которое нужно вернуть.
+   */
   internal fun releaseConnection(connection: Connection) {
     connectionPool.offer(connection)
   }
 
+  /** Закрывает все соединения в пуле. */
   fun close() {
     connectionPool.forEach { conn ->
       try {
@@ -60,6 +87,7 @@ object DatabaseConnection {
     }
   }
 
+  /** Обертка над соединением, которая при вызове [close] возвращает соединение в пул. */
   private class PooledConnection(private val connection: Connection) : Connection by connection {
     override fun close() {
       releaseConnection(connection)

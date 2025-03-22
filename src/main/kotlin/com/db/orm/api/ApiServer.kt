@@ -17,6 +17,15 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
+/**
+ * Точка входа в приложение ORM API.
+ *
+ * Данный модуль запускает Ktor-сервер на порту 8080 и регистрирует маршруты API, реализующие CRUD
+ * операции для работы с базой данных посредством [IORMService].
+ *
+ * Для работы используется реализация [ORMService], которая обращается к [DatabaseConnection] для
+ * управления соединениями.
+ */
 fun main() {
   embeddedServer(Netty, port = 8080) {
         install(ContentNegotiation) { json(Json { prettyPrint = true }) }
@@ -26,6 +35,17 @@ fun main() {
       .start(wait = true)
 }
 
+/**
+ * Регистрирует маршруты REST API для CRUD операций.
+ *
+ * @param ormService Экземпляр сервиса, реализующего [IORMService].
+ *
+ * Определяются следующие эндпоинты:
+ * - POST /create – создание новой записи.
+ * - POST /read – выполнение SELECT запроса.
+ * - PUT /update – обновление записей.
+ * - DELETE /delete – удаление записей.
+ */
 fun Application.apiModule(ormService: IORMService) {
   routing {
     post("/create") {
@@ -68,8 +88,21 @@ fun Application.apiModule(ormService: IORMService) {
   }
 }
 
+/**
+ * Модель запроса для создания записи.
+ *
+ * @property table Имя таблицы.
+ * @property data Пара ключ-значение с данными для вставки.
+ */
 @Serializable data class CreateRequest(val table: String, val data: Map<String, String>)
 
+/**
+ * Модель запроса для выполнения SELECT запроса.
+ *
+ * @property table Имя таблицы.
+ * @property columns Список колонок для выборки (по умолчанию все, если не указан).
+ * @property filters Карта фильтров (ключ-значение), используемых в условии WHERE.
+ */
 @Serializable
 data class ReadRequest(
     val table: String,
@@ -77,6 +110,14 @@ data class ReadRequest(
     val filters: Map<String, String> = emptyMap()
 )
 
+/**
+ * Модель запроса для обновления записей.
+ *
+ * @property table Имя таблицы.
+ * @property data Пара ключ-значение с новыми данными.
+ * @property condition Условие WHERE в виде строки с подстановочными знаками (?).
+ * @property conditionParams Список параметров для условия.
+ */
 @Serializable
 data class UpdateRequest(
     val table: String,
@@ -85,6 +126,13 @@ data class UpdateRequest(
     val conditionParams: List<String>
 )
 
+/**
+ * Модель запроса для удаления записей.
+ *
+ * @property table Имя таблицы.
+ * @property condition Условие WHERE в виде строки с подстановочными знаками (?).
+ * @property conditionParams Список параметров для условия.
+ */
 @Serializable
 data class DeleteRequest(
     val table: String,
