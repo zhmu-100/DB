@@ -3,41 +3,42 @@ package com.db.orm.query
 import com.db.orm.connection.DatabaseConnection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class SQLActivity : SQLExecutor {
 
-  override fun executeQuery(query: String): List<Map<String, Any?>> {
-    DatabaseConnection.getConnection().use { connection ->
-      connection.createStatement().use { statement ->
-        statement.executeQuery(query).use { resultSet ->
-          return resultSetToList(resultSet)
+  override suspend fun executeQuery(query: String): List<Map<String, Any?>> =
+      withContext(Dispatchers.IO) {
+        DatabaseConnection.getConnection().use { connection ->
+          connection.createStatement().use { statement ->
+            statement.executeQuery(query).use { resultSet -> resultSetToList(resultSet) }
+          }
         }
       }
-    }
-  }
 
-  override fun executeParameterizedQuery(
+  override suspend fun executeParameterizedQuery(
       query: String,
       params: List<Any>
-  ): List<Map<String, Any?>> {
-    DatabaseConnection.getConnection().use { connection ->
-      connection.prepareStatement(query).use { preparedStatement ->
-        setParameters(preparedStatement, params)
-        preparedStatement.executeQuery().use { resultSet ->
-          return resultSetToList(resultSet)
+  ): List<Map<String, Any?>> =
+      withContext(Dispatchers.IO) {
+        DatabaseConnection.getConnection().use { connection ->
+          connection.prepareStatement(query).use { preparedStatement ->
+            setParameters(preparedStatement, params)
+            preparedStatement.executeQuery().use { resultSet -> resultSetToList(resultSet) }
+          }
         }
       }
-    }
-  }
 
-  override fun executeParameterizedUpdate(query: String, params: List<Any>): Int {
-    DatabaseConnection.getConnection().use { connection ->
-      connection.prepareStatement(query).use { preparedStatement ->
-        setParameters(preparedStatement, params)
-        return preparedStatement.executeUpdate()
+  override suspend fun executeParameterizedUpdate(query: String, params: List<Any>): Int =
+      withContext(Dispatchers.IO) {
+        DatabaseConnection.getConnection().use { connection ->
+          connection.prepareStatement(query).use { preparedStatement ->
+            setParameters(preparedStatement, params)
+            preparedStatement.executeUpdate()
+          }
+        }
       }
-    }
-  }
 
   private fun setParameters(preparedStatement: PreparedStatement, params: List<Any>) {
     params.forEachIndexed { index, param ->

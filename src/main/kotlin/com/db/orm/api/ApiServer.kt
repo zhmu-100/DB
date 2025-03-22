@@ -29,62 +29,41 @@ fun main() {
 fun Application.apiModule(ormService: IORMService) {
   routing {
     post("/create") {
-      try {
-        val request = call.receive<CreateRequest>()
-        val success = ormService.create(request.table, request.data)
-        call.respond(mapOf("success" to success))
-      } catch (e: Exception) {
-        e.printStackTrace()
-        call.respondText("Error: ${e.localizedMessage}")
-      }
+      val request = call.receive<CreateRequest>()
+      val success = ormService.create(request.table, request.data)
+      call.respond(mapOf("success" to success))
     }
 
     post("/read") {
-      try {
-        val request = call.receive<ReadRequest>()
-        val results: List<Map<String, Any?>> =
-            ormService.read(request.table, request.columns, request.filters)
-        val jsonResults =
-            results.map { row ->
-              JsonObject(
-                  row.mapValues { (_, value) ->
-                    when (value) {
-                      null -> JsonNull
-                      is Number -> JsonPrimitive(value)
-                      is Boolean -> JsonPrimitive(value)
-                      else -> JsonPrimitive(value.toString())
-                    }
-                  })
-            }
-        call.respond(jsonResults)
-      } catch (e: Exception) {
-        e.printStackTrace()
-        call.respondText("Error: ${e.localizedMessage}")
-      }
+      val request = call.receive<ReadRequest>()
+      val results: List<Map<String, Any?>> =
+          ormService.read(request.table, request.columns, request.filters)
+      val jsonResults =
+          results.map { row ->
+            JsonObject(
+                row.mapValues { (_, value) ->
+                  when (value) {
+                    null -> JsonNull
+                    is Number -> JsonPrimitive(value)
+                    is Boolean -> JsonPrimitive(value)
+                    else -> JsonPrimitive(value.toString())
+                  }
+                })
+          }
+      call.respond(jsonResults)
     }
 
     put("/update") {
-      try {
-        val request = call.receive<UpdateRequest>()
-        val success =
-            ormService.update(
-                request.table, request.data, request.condition, request.conditionParams)
-        call.respond(mapOf("success" to success))
-      } catch (e: Exception) {
-        e.printStackTrace()
-        call.respondText("Error: ${e.localizedMessage}")
-      }
+      val request = call.receive<UpdateRequest>()
+      val success =
+          ormService.update(request.table, request.data, request.condition, request.conditionParams)
+      call.respond(mapOf("success" to success))
     }
 
     delete("/delete") {
-      try {
-        val request = call.receive<DeleteRequest>()
-        val success = ormService.delete(request.table, request.condition, request.conditionParams)
-        call.respond(mapOf("success" to success))
-      } catch (e: Exception) {
-        e.printStackTrace()
-        call.respondText("Error: ${e.localizedMessage}")
-      }
+      val request = call.receive<DeleteRequest>()
+      val success = ormService.delete(request.table, request.condition, request.conditionParams)
+      call.respond(mapOf("success" to success))
     }
   }
 }

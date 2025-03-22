@@ -22,6 +22,8 @@ dependencies {
 
   implementation("io.ktor:ktor-server-content-negotiation-jvm:2.2.4")
   implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:2.2.4")
+  implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+
 
   implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 
