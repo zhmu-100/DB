@@ -12,10 +12,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.*
 
 /**
  * Точка входа в приложение ORM API.
@@ -56,21 +53,40 @@ fun Application.apiModule(ormService: IORMService) {
 
     post("/read") {
       val request = call.receive<ReadRequest>()
-      val results: List<Map<String, Any?>> =
-          ormService.read(request.table, request.columns, request.filters)
-      val jsonResults =
-          results.map { row ->
-            JsonObject(
-                row.mapValues { (_, value) ->
-                  when (value) {
-                    null -> JsonNull
-                    is Number -> JsonPrimitive(value)
-                    is Boolean -> JsonPrimitive(value)
-                    else -> JsonPrimitive(value.toString())
-                  }
+        val results = ormService.read(request.table, request.columns, request.filters)
+
+        val jsonArray = buildJsonArray {
+            results.forEach { row ->
+                add(buildJsonObject {
+                    row.forEach { (key, value) ->
+                        when (value) {
+                            null -> put(key, JsonNull)
+                            is Number -> put(key, JsonPrimitive(value))
+                            is Boolean -> put(key, JsonPrimitive(value))
+                            is String -> put(key, JsonPrimitive(value))
+                            is List<*> -> {
+                                val jsonList = buildJsonArray {
+                                    value.forEach { item ->
+                                        if (item is Map<*, *>) {
+                                            add(buildJsonObject {
+                                                item.forEach { (k, v) ->
+                                                    put(k.toString(), JsonPrimitive(v.toString()))
+                                                }
+                                            })
+                                        } else {
+                                            add(JsonPrimitive(item.toString()))
+                                        }
+                                    }
+                                }
+                                put(key, jsonList)
+                            }
+                            else -> put(key, JsonPrimitive(value.toString()))
+                        }
+                    }
                 })
-          }
-      call.respond(jsonResults)
+            }
+        }
+        call.respond(jsonArray)
     }
 
     put("/update") {

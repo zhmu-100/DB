@@ -47,8 +47,67 @@ class ORMService(private val executor: SQLExecutor = SQLActivity()) : IORMServic
           queryBuilder.append(" WHERE $conditions")
           params.addAll(filters.values)
         }
-        executor.executeParameterizedQuery(queryBuilder.toString(), params)
+          val foods = executor.executeParameterizedQuery(queryBuilder.toString(), params)
+          if (table != "foods") return@withContext foods
+          return@withContext foods.map { food ->
+              val foodId = food["id"]?.toString() ?: ""
+              val vitamins = getVitaminsForFood(foodId)
+              val minerals = getMineralsForFood(foodId)
+
+              food.toMutableMap().apply {
+                  put("vitamins", vitamins)
+                  put("minerals", minerals)
+              }
+          }
       }
+
+    /**
+     * Получает список витаминов, связанных с продуктом.
+     *
+     * @param foodId Идентификатор продукта.
+     * @return Список витаминов с их количеством и единицами измерения.
+     */
+    private suspend fun getVitaminsForFood(foodId: String): List<Map<String, Any?>> {
+        val query = """
+            SELECT v.id, v.name, v.unit, fv.amount 
+            FROM food_vitamins fv
+            JOIN vitamins v ON fv.vitamin_id = v.id
+            WHERE fv.food_id = ?
+        """.trimIndent()
+
+        return executor.executeParameterizedQuery(query, listOf(foodId)).map {
+            mapOf(
+                "id" to it["id"],
+                "name" to it["name"],
+                "amount" to it["amount"],
+                "unit" to it["unit"]
+            )
+        }
+    }
+
+    /**
+     * Получает список минералов, связанных с продуктом.
+     *
+     * @param foodId Идентификатор продукта.
+     * @return Список минералов с их количеством и единицами измерения.
+     */
+    private suspend fun getMineralsForFood(foodId: String): List<Map<String, Any?>> {
+        val query = """
+            SELECT m.id, m.name, m.unit, fm.amount 
+            FROM food_minerals fm
+            JOIN minerals m ON fm.mineral_id = m.id
+            WHERE fm.food_id = ?
+        """.trimIndent()
+
+        return executor.executeParameterizedQuery(query, listOf(foodId)).map {
+            mapOf(
+                "id" to it["id"],
+                "name" to it["name"],
+                "amount" to it["amount"],
+                "unit" to it["unit"]
+            )
+        }
+    }
 
   /**
    * Обновляет записи в указанной таблице.
