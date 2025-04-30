@@ -3,6 +3,7 @@ package com.db.orm.api
 import com.db.orm.connection.DatabaseConnection
 import com.db.orm.crud.IORMService
 import com.db.orm.crud.ORMService
+import io.github.cdimascio.dotenv.dotenv
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -27,7 +28,9 @@ import kotlinx.serialization.json.JsonPrimitive
  * управления соединениями.
  */
 fun main() {
-  embeddedServer(Netty, port = 8080) {
+  val dotenv = dotenv() // смотрит на файл .env
+  val port = dotenv["PORT"]?.toIntOrNull() ?: 8080
+  embeddedServer(Netty, port) {
         install(ContentNegotiation) { json(Json { prettyPrint = true }) }
         environment.monitor.subscribe(ApplicationStopped) { DatabaseConnection.close() }
         apiModule(ORMService())
