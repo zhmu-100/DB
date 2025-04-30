@@ -16,6 +16,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import io.github.cdimascio.dotenv.dotenv
+
 
 /**
  * Точка входа в приложение ORM API.
@@ -27,7 +29,9 @@ import kotlinx.serialization.json.JsonPrimitive
  * управления соединениями.
  */
 fun main() {
-  embeddedServer(Netty, port = 8080) {
+  val dotenv = dotenv()  // смотрит на файл .env
+  val port = dotenv["PORT"]?.toIntOrNull() ?: 8080
+  embeddedServer(Netty, port) {
         install(ContentNegotiation) { json(Json { prettyPrint = true }) }
         environment.monitor.subscribe(ApplicationStopped) { DatabaseConnection.close() }
         apiModule(ORMService())
