@@ -5,6 +5,7 @@ plugins {
   application
   id("com.ncorti.ktfmt.gradle") version "0.11.0"
   jacoco
+  id("org.jetbrains.dokka") version "1.9.20"
 }
 
 group = "com.db.orm"
@@ -22,6 +23,8 @@ dependencies {
 
   implementation("io.ktor:ktor-server-content-negotiation-jvm:2.2.4")
   implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:2.2.4")
+  implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+
 
   implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 
@@ -48,7 +51,7 @@ tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
   violationRules {
     rule {
       limit {
-        minimum = 0.50.toBigDecimal()
+        minimum = 0.80.toBigDecimal()
         counter = "LINE"
       }
     }
