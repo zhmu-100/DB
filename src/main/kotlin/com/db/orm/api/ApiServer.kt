@@ -3,6 +3,7 @@ package com.db.orm.api
 import com.db.orm.connection.DatabaseConnection
 import com.db.orm.crud.IORMService
 import com.db.orm.crud.ORMService
+import io.github.cdimascio.dotenv.dotenv
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -16,8 +17,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import io.github.cdimascio.dotenv.dotenv
-
 
 /**
  * Точка входа в приложение ORM API.
@@ -29,7 +28,7 @@ import io.github.cdimascio.dotenv.dotenv
  * управления соединениями.
  */
 fun main() {
-  val dotenv = dotenv()  // смотрит на файл .env
+  val dotenv = dotenv() // смотрит на файл .env
   val port = dotenv["PORT"]?.toIntOrNull() ?: 8080
   embeddedServer(Netty, port) {
         install(ContentNegotiation) { json(Json { prettyPrint = true }) }
