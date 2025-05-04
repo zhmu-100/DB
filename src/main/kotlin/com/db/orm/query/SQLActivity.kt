@@ -1,6 +1,7 @@
 package com.db.orm.query
 
 import com.db.orm.connection.DatabaseConnection
+import com.db.orm.logging.LoggerProvider
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,7 @@ import kotlinx.coroutines.withContext
  * - выполнение SQL запроса на изменение данных с параметрами.
  */
 class SQLActivity : SQLExecutor {
+  private val logger = LoggerProvider.logger
 
   /**
    * Выполняет SQL запрос без параметров и возвращает список записей из БД.
@@ -29,10 +31,28 @@ class SQLActivity : SQLExecutor {
    */
   override suspend fun executeQuery(query: String): List<Map<String, Any?>> =
       withContext(Dispatchers.IO) {
-        DatabaseConnection.getConnection().use { connection ->
-          connection.createStatement().use { statement ->
-            statement.executeQuery(query).use { resultSet -> resultSetToList(resultSet) }
+        logger.logActivity(
+            "Выполнение SQL запроса без параметров", additionalData = mapOf("query" to query))
+
+        try {
+          DatabaseConnection.getConnection().use { connection ->
+            connection.createStatement().use { statement ->
+              statement.executeQuery(query).use { resultSet ->
+                val results = resultSetToList(resultSet)
+                logger.logActivity(
+                    "SQL запрос выполнен успешно",
+                    additionalData =
+                        mapOf("query" to query, "rowsReturned" to results.size.toString()))
+                results
+              }
+            }
           }
+        } catch (e: Exception) {
+          logger.logError(
+              "Ошибка при выполнении SQL запроса: query=$query",
+              errorMessage = e.message ?: "Неизвестная ошибка",
+              stackTrace = e.stackTraceToString())
+          throw e
         }
       }
 
@@ -48,11 +68,30 @@ class SQLActivity : SQLExecutor {
       params: List<Any>
   ): List<Map<String, Any?>> =
       withContext(Dispatchers.IO) {
-        DatabaseConnection.getConnection().use { connection ->
-          connection.prepareStatement(query).use { preparedStatement ->
-            setParameters(preparedStatement, params)
-            preparedStatement.executeQuery().use { resultSet -> resultSetToList(resultSet) }
+        logger.logActivity(
+            "Выполнение SQL запроса с параметрами",
+            additionalData = mapOf("query" to query, "paramsCount" to params.size.toString()))
+
+        try {
+          DatabaseConnection.getConnection().use { connection ->
+            connection.prepareStatement(query).use { preparedStatement ->
+              setParameters(preparedStatement, params)
+              preparedStatement.executeQuery().use { resultSet ->
+                val results = resultSetToList(resultSet)
+                logger.logActivity(
+                    "SQL запрос с параметрами выполнен успешно",
+                    additionalData =
+                        mapOf("query" to query, "rowsReturned" to results.size.toString()))
+                results
+              }
+            }
           }
+        } catch (e: Exception) {
+          logger.logError(
+              "Ошибка при выполнении SQL запроса с параметрами: query=$query",
+              errorMessage = e.message ?: "Неизвестная ошибка",
+              stackTrace = e.stackTraceToString())
+          throw e
         }
       }
 
@@ -66,11 +105,28 @@ class SQLActivity : SQLExecutor {
    */
   override suspend fun executeParameterizedUpdate(query: String, params: List<Any>): Int =
       withContext(Dispatchers.IO) {
-        DatabaseConnection.getConnection().use { connection ->
-          connection.prepareStatement(query).use { preparedStatement ->
-            setParameters(preparedStatement, params)
-            preparedStatement.executeUpdate()
+        logger.logActivity(
+            "Выполнение SQL запроса на изменение данных",
+            additionalData = mapOf("query" to query, "paramsCount" to params.size.toString()))
+
+        try {
+          DatabaseConnection.getConnection().use { connection ->
+            connection.prepareStatement(query).use { preparedStatement ->
+              setParameters(preparedStatement, params)
+              val affectedRows = preparedStatement.executeUpdate()
+              logger.logActivity(
+                  "SQL запрос на изменение данных выполнен успешно",
+                  additionalData =
+                      mapOf("query" to query, "affectedRows" to affectedRows.toString()))
+              affectedRows
+            }
           }
+        } catch (e: Exception) {
+          logger.logError(
+              "Ошибка при выполнении SQL запроса на изменение данных: query=$query",
+              errorMessage = e.message ?: "Неизвестная ошибка",
+              stackTrace = e.stackTraceToString())
+          throw e
         }
       }
 
