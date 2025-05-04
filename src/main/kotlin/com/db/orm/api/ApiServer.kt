@@ -3,6 +3,7 @@ package com.db.orm.api
 import com.db.orm.connection.DatabaseConnection
 import com.db.orm.crud.IORMService
 import com.db.orm.crud.ORMService
+import com.db.orm.logging.LoggerProvider
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -30,9 +31,17 @@ import kotlinx.serialization.json.JsonPrimitive
 fun main() {
   val dotenv = dotenv() // смотрит на файл .env
   val port = dotenv["PORT"]?.toIntOrNull() ?: 8080
+  val logger = LoggerProvider.logger
+
+  logger.logActivity("Запуск ORM API сервера", additionalData = mapOf("port" to port.toString()))
+
   embeddedServer(Netty, port) {
         install(ContentNegotiation) { json(Json { prettyPrint = true }) }
-        environment.monitor.subscribe(ApplicationStopped) { DatabaseConnection.close() }
+        environment.monitor.subscribe(ApplicationStopped) {
+          logger.logActivity("Остановка ORM API сервера")
+          DatabaseConnection.close()
+          logger.close()
+        }
         apiModule(ORMService())
       }
       .start(wait = true)
@@ -50,43 +59,120 @@ fun main() {
  * - DELETE /delete – удаление записей.
  */
 fun Application.apiModule(ormService: IORMService) {
+  val logger = LoggerProvider.logger
+
   routing {
     post("/create") {
       val request = call.receive<CreateRequest>()
-      val success = ormService.create(request.table, request.data)
-      call.respond(mapOf("success" to success))
+      logger.logActivity(
+          "API запрос: создание записи",
+          additionalData =
+              mapOf("table" to request.table, "dataKeys" to request.data.keys.joinToString(",")))
+
+      try {
+        val success = ormService.create(request.table, request.data)
+        call.respond(mapOf("success" to success))
+
+        logger.logActivity(
+            "API ответ: создание записи",
+            additionalData = mapOf("table" to request.table, "success" to success.toString()))
+      } catch (e: Exception) {
+        logger.logError(
+            "Ошибка при создании записи: table=${request.table}",
+            errorMessage = e.message ?: "Неизвестная ошибка",
+            stackTrace = e.stackTraceToString())
+        throw e
+      }
     }
 
     post("/read") {
       val request = call.receive<ReadRequest>()
-      val results: List<Map<String, Any?>> =
-          ormService.read(request.table, request.columns, request.filters)
-      val jsonResults =
-          results.map { row ->
-            JsonObject(
-                row.mapValues { (_, value) ->
-                  when (value) {
-                    null -> JsonNull
-                    is Number -> JsonPrimitive(value)
-                    is Boolean -> JsonPrimitive(value)
-                    else -> JsonPrimitive(value.toString())
-                  }
-                })
-          }
-      call.respond(jsonResults)
+      logger.logActivity(
+          "API запрос: чтение данных",
+          additionalData =
+              mapOf(
+                  "table" to request.table,
+                  "columns" to request.columns.joinToString(","),
+                  "filtersCount" to request.filters.size.toString()))
+
+      try {
+        val results: List<Map<String, Any?>> =
+            ormService.read(request.table, request.columns, request.filters)
+        val jsonResults =
+            results.map { row ->
+              JsonObject(
+                  row.mapValues { (_, value) ->
+                    when (value) {
+                      null -> JsonNull
+                      is Number -> JsonPrimitive(value)
+                      is Boolean -> JsonPrimitive(value)
+                      else -> JsonPrimitive(value.toString())
+                    }
+                  })
+            }
+        call.respond(jsonResults)
+
+        logger.logActivity(
+            "API ответ: чтение данных",
+            additionalData =
+                mapOf("table" to request.table, "rowsReturned" to results.size.toString()))
+      } catch (e: Exception) {
+        logger.logError(
+            "Ошибка при чтении данных: table=${request.table}, columns=${request.columns.joinToString(",")}, filtersCount=${request.filters.size}",
+            errorMessage = e.message ?: "Неизвестная ошибка",
+            stackTrace = e.stackTraceToString())
+        throw e
+      }
     }
 
     put("/update") {
       val request = call.receive<UpdateRequest>()
-      val success =
-          ormService.update(request.table, request.data, request.condition, request.conditionParams)
-      call.respond(mapOf("success" to success))
+      logger.logActivity(
+          "API запрос: обновление данных",
+          additionalData =
+              mapOf(
+                  "table" to request.table,
+                  "dataKeys" to request.data.keys.joinToString(","),
+                  "condition" to request.condition))
+
+      try {
+        val success =
+            ormService.update(
+                request.table, request.data, request.condition, request.conditionParams)
+        call.respond(mapOf("success" to success))
+
+        logger.logActivity(
+            "API ответ: обновление данных",
+            additionalData = mapOf("table" to request.table, "success" to success.toString()))
+      } catch (e: Exception) {
+        logger.logError(
+            "Ошибка при обновлении данных: table=${request.table}, condition=${request.condition}",
+            errorMessage = e.message ?: "Неизвестная ошибка",
+            stackTrace = e.stackTraceToString())
+        throw e
+      }
     }
 
     delete("/delete") {
       val request = call.receive<DeleteRequest>()
-      val success = ormService.delete(request.table, request.condition, request.conditionParams)
-      call.respond(mapOf("success" to success))
+      logger.logActivity(
+          "API запрос: удаление данных",
+          additionalData = mapOf("table" to request.table, "condition" to request.condition))
+
+      try {
+        val success = ormService.delete(request.table, request.condition, request.conditionParams)
+        call.respond(mapOf("success" to success))
+
+        logger.logActivity(
+            "API ответ: удаление данных",
+            additionalData = mapOf("table" to request.table, "success" to success.toString()))
+      } catch (e: Exception) {
+        logger.logError(
+            "Ошибка при удалении данных: table=${request.table}, condition=${request.condition}",
+            errorMessage = e.message ?: "Неизвестная ошибка",
+            stackTrace = e.stackTraceToString())
+        throw e
+      }
     }
   }
 }
