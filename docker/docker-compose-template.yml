@@ -16,6 +16,7 @@ services:
       - app-logs:/app/logs
       # - ./config/${DEPLOYMENT_ENV:-development}/${SERVICE_NAME:-db-service}.conf:/app/config/application.conf
       - ./${SERVICE_NAME}.conf:/app/config/application.conf
+      - ./${SERVICE_NAME:-db-service}.env:/app/.env
     networks:
       - app-network
     healthcheck:
