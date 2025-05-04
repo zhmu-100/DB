@@ -26,9 +26,11 @@ LOGGER_ERROR_CHANNEL=logger:error
 1. Ensure PostgreSQL is running.
 2. Create and configure the `.env` file.
 3. Start the service:
+
    ```bash
    ./gradlew run
    ```
+
    The service listens on port **8080**.
 
 ## Testing
@@ -53,9 +55,10 @@ Create report with:
 
 ## Endpoints (Port: 8080)
 
-- **POST /create**  
-  Inserts a new record.  
+- **POST /create**
+  Inserts a new record.
   **Example JSON:**
+
   ```json
   {
     "table": "users",
@@ -66,10 +69,11 @@ Create report with:
   }
   ```
 
-- **POST /read**  
+- **POST /read**
   Performs a parameterized SELECT query by providing the table name, a list of columns to select (default is all
   columns), and optional filters. Example JSON:
 - **Example JSON:**
+
   ```json
   {
     "table": "users",
@@ -80,9 +84,10 @@ Create report with:
   }
   ```
 
-- **PUT /update**  
-  Updates records.  
+- **PUT /update**
+  Updates records.
   **Example JSON:**
+
   ```json
   {
     "table": "users",
@@ -92,9 +97,10 @@ Create report with:
   }
   ```
 
-- **DELETE /delete**  
-  Deletes records.  
+- **DELETE /delete**
+  Deletes records.
   **Example JSON:**
+
   ```json
   {
     "table": "users",
@@ -102,4 +108,3 @@ Create report with:
     "conditionParams": ["1"]
   }
   ```
-
