@@ -1,5 +1,5 @@
 services:
-  db-service:
+  app:
     image: ${REGISTRY:-localhost}/${SERVICE_NAME:-db-service}:${SERVICE_VERSION:-latest}
     container_name: ${SERVICE_NAME:-db-service}
     restart: always
@@ -12,8 +12,8 @@ services:
     ports:
       - "${PORT:-8080}:8080"
     volumes:
-      - db-service-data:/db-service/data
-      - db-service-logs:/db-service/logs
+      - app-data:/app/data
+      - app-logs:/app/logs
       # - ./config/${DEPLOYMENT_ENV:-development}/${SERVICE_NAME:-db-service}.conf:/app/config/application.conf
       - ./${SERVICE_NAME}.conf:/app/config/application.conf
     networks:
@@ -67,9 +67,9 @@ networks:
     external: true
 
 volumes:
-  db-service-data:
+  app-data:
     name: ${SERVICE_NAME:-db-service}-data-${DEPLOYMENT_ENV:-development}
-  db-service-logs:
+  app-logs:
     name: ${SERVICE_NAME:-db-service}-logs-${DEPLOYMENT_ENV:-development}
   postgres-data:
     name: ${SERVICE_NAME:-db-service}-postgres-data-${DEPLOYMENT_ENV:-development}
