@@ -96,8 +96,8 @@ jobs:
           mkdir -p deploy
           cp docker/docker-compose-template.yml deploy/docker-compose.yml
           cp config/application/${{ inputs.service-name }}/application.conf deploy/${{ inputs.service-name }}.conf
-          cp -r config/${{ inputs.environment }}/${{ inputs.service-name }}.env deploy/.env
-          cp deploy/.env deploy/${{ inputs.service-name }}.env
+          cp config/${{ inputs.environment }}/${{ inputs.service-name }}.env deploy/
+          cp config/${{ inputs.environment }}/${{ inputs.service-name }}.env deploy/.env
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
