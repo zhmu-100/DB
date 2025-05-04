@@ -17,6 +17,7 @@ services:
       # - ./config/${DEPLOYMENT_ENV:-development}/${SERVICE_NAME:-db-service}.conf:/app/config/application.conf
       - ./${SERVICE_NAME}.conf:/app/config/application.conf
       - ./${SERVICE_NAME:-db-service}.env:/app/.env
+      - ./${SERVICE_NAME:-db-service}.env:/.env
     networks:
       - app-network
     healthcheck:
