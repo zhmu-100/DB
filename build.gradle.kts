@@ -12,10 +12,21 @@ group = "com.db.orm"
 
 version = "0.1.0"
 
-repositories { mavenCentral() }
+repositories { mavenCentral()
+  maven { url = uri("https://jitpack.io") }
+}
 
 dependencies {
   implementation(kotlin("stdlib"))
+
+  implementation("io.ktor:ktor-server-core:2.3.0")
+  implementation("io.ktor:ktor-server-netty:2.3.0")
+  implementation("io.ktor:ktor-server-content-negotiation:2.3.0")
+
+  implementation("io.insert-koin:koin-core:3.3.0")
+  implementation("io.insert-koin:koin-ktor:3.3.0")
+
+  implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.0")
 
   implementation("io.ktor:ktor-server-core-jvm:2.2.4")
   implementation("io.ktor:ktor-server-netty-jvm:2.2.4")
@@ -25,6 +36,7 @@ dependencies {
   implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:2.2.4")
   implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
 
+  implementation("com.github.poplopok:Logger:1.0.6")
 
   implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 

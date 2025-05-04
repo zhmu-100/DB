@@ -1,5 +1,6 @@
 package com.db.orm.connection
 
+import com.db.orm.logging.LoggerProvider
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
@@ -20,13 +21,32 @@ object DatabaseConnection {
   private const val MAX_POOL_SIZE = 20
   private val connectionPool = LinkedBlockingQueue<Connection>(MAX_POOL_SIZE)
   private val totalConnections = AtomicInteger(0)
+  private val logger = LoggerProvider.logger
 
   init {
+    logger.logActivity(
+        "Инициализация пула соединений с БД",
+        additionalData =
+            mapOf(
+                "initialPoolSize" to INITIAL_POOL_SIZE.toString(),
+                "maxPoolSize" to MAX_POOL_SIZE.toString()))
+
     repeat(INITIAL_POOL_SIZE) {
-      val conn = createNewConnection()
-      connectionPool.offer(conn)
-      totalConnections.incrementAndGet()
+      try {
+        val conn = createNewConnection()
+        connectionPool.offer(conn)
+        totalConnections.incrementAndGet()
+      } catch (e: Exception) {
+        logger.logError(
+            "Ошибка при создании соединения с БД",
+            errorMessage = e.message ?: "Неизвестная ошибка",
+            stackTrace = e.stackTraceToString())
+      }
     }
+
+    logger.logActivity(
+        "Пул соединений с БД инициализирован",
+        additionalData = mapOf("connectionsCreated" to totalConnections.get().toString()))
   }
 
   /**
@@ -38,9 +58,22 @@ object DatabaseConnection {
   private fun createNewConnection(): Connection {
     val config = DatabaseConfig.load()
     val url = "jdbc:postgresql://${config.host}:${config.port}/${config.database}"
+
+    logger.logActivity(
+        "Создание нового соединения с БД",
+        additionalData =
+            mapOf(
+                "host" to config.host,
+                "port" to config.port.toString(),
+                "database" to config.database))
+
     return try {
       DriverManager.getConnection(url, config.user, config.password)
     } catch (e: SQLException) {
+      logger.logError(
+          "Ошибка при подключении к БД: host=${config.host}, port=${config.port}, database=${config.database}",
+          errorMessage = e.message ?: "Неизвестная ошибка",
+          stackTrace = e.stackTraceToString())
       throw RuntimeException("Error while connecting to db: ${e.message}", e)
     }
   }
@@ -53,17 +86,39 @@ object DatabaseConnection {
    * @throws RuntimeException если время ожидания превышено.
    */
   fun getConnection(): Connection {
+    logger.logActivity("Запрос соединения из пула")
+
     val conn =
         connectionPool.poll()
             ?: run {
               if (totalConnections.get() < MAX_POOL_SIZE) {
+                logger.logActivity(
+                    "Создание нового соединения (пул пуст)",
+                    additionalData =
+                        mapOf(
+                            "currentConnections" to totalConnections.get().toString(),
+                            "maxPoolSize" to MAX_POOL_SIZE.toString()))
                 totalConnections.incrementAndGet()
                 createNewConnection()
               } else {
+                logger.logActivity(
+                    "Ожидание освобождения соединения",
+                    additionalData =
+                        mapOf(
+                            "timeout" to "30 seconds",
+                            "currentConnections" to totalConnections.get().toString()))
                 connectionPool.poll(30, TimeUnit.SECONDS)
-                    ?: throw RuntimeException("Timeout waiting for a database connection")
+                    ?: run {
+                      logger.logError(
+                          "Превышено время ожидания соединения с БД",
+                          errorMessage = "Timeout waiting for a database connection",
+                      )
+                      throw RuntimeException("Timeout waiting for a database connection")
+                    }
               }
             }
+
+    logger.logActivity("Соединение получено из пула")
     return PooledConnection(conn)
   }
 
@@ -73,18 +128,39 @@ object DatabaseConnection {
    * @param connection Соединение, которое нужно вернуть.
    */
   internal fun releaseConnection(connection: Connection) {
+    logger.logActivity("Возврат соединения в пул")
     connectionPool.offer(connection)
   }
 
   /** Закрывает все соединения в пуле. */
   fun close() {
+    logger.logActivity(
+        "Закрытие пула соединений",
+        additionalData = mapOf("totalConnections" to totalConnections.get().toString()))
+
+    var closedConnections = 0
+    var failedConnections = 0
+
     connectionPool.forEach { conn ->
       try {
         conn.close()
+        closedConnections++
       } catch (e: SQLException) {
+        failedConnections++
+        logger.logError(
+            "Ошибка при закрытии соединения с БД",
+            errorMessage = e.message ?: "Неизвестная ошибка",
+            stackTrace = e.stackTraceToString())
         e.printStackTrace()
       }
     }
+
+    logger.logActivity(
+        "Пул соединений закрыт",
+        additionalData =
+            mapOf(
+                "closedConnections" to closedConnections.toString(),
+                "failedConnections" to failedConnections.toString()))
   }
 
   /** Обертка над соединением, которая при вызове [close] возвращает соединение в пул. */
