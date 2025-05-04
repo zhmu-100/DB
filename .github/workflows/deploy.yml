@@ -45,6 +45,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       status: ${{ steps.set-status.outputs.status }}
+    env:
+      DEPLOY_HOST: ${{ secrets.deploy-host }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -103,6 +105,15 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ssh-key }}
 
+      - name: display
+        run: |
+          echo "$DEPLOY_HOST" |  awk '$1=$1' FS= OFS=" "
+
+          touch .env
+          echo DEPLOY_HOST = $DEPLOY_HOST >> .env
+
+          cat .env | awk '$1=$1' FS= OFS=" "
+
       - name: Deploy to server
         run: |
           echo "Deploying to ${{ inputs.environment }} environment on ${{ secrets.deploy-host }}"
@@ -121,6 +132,8 @@ jobs:
           scp -r -o LogLevel=ERROR -o StrictHostKeyChecking=no -q -T -o ConnectTimeout=60 -C deploy/${{ inputs.service-name }}.env deploy@${{ secrets.deploy-host }}:/opt/deployment/${{ inputs.service-name }}/.env
           # Verify files exist
           ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -T -q -o ConnectTimeout=60 deploy@${{ secrets.deploy-host }} "ls -la /opt/deployment/${{ inputs.service-name }}/"
+          # Check Docker daemon status
+          ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -T -q -o ConnectTimeout=60 deploy@${{ secrets.deploy-host }} "if ! systemctl is-active --quiet docker; then echo 'Docker is not running!'; exit 1; fi"
           # Create the required external network if it doesn't exist
           ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -T -q -o ConnectTimeout=60 deploy@${{ secrets.deploy-host }} "docker network inspect app-network >/dev/null 2>&1 || docker network create app-network"
           # Pull images and start services
