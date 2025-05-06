@@ -10,7 +10,7 @@ services:
     env_file:
       - ./${SERVICE_NAME:-db-service}.env
     ports:
-      - "${SERVICE_PORT:-8080}:8080"
+      - "${SERVICE_PORT:-8090}:8090"
     volumes:
       - app-data:/app/data
       - app-logs:/app/logs
